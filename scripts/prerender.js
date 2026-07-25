@@ -1,12 +1,12 @@
-// Lightweight manual SSG step. After `vite build` produces the client bundle
-// and esbuild bundles scripts/ssrEntry.jsx into a single CJS file, this
-// script server-renders every route to static HTML, stamps in per-route
-// <title>/<meta>/canonical/JSON-LD, and writes one crawlable index.html per
-// route. The client bundle then hydrates on top, so the SPA stays fully
-// interactive after load.
+// Lightweight manual SSG step. After `vite build` produces the client bundle,
+// this script uses esbuild's JS API to bundle scripts/ssrEntry.jsx into a
+// single CJS file, server-renders every route to static HTML, stamps in
+// per-route <title>/<meta>/canonical/JSON-LD, and writes one crawlable
+// index.html per route. The client bundle then hydrates on top, so the SPA
+// stays fully interactive after load.
 import fs from "node:fs";
 import path from "node:path";
-import { execSync } from "node:child_process";
+import esbuild from "esbuild";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { ROUTES } from "./routesMeta.js";
@@ -18,10 +18,21 @@ const bundlePath = path.join(__dirname, ".ssr-bundle.cjs");
 const SITE_URL = "https://m3mbrabus.example.com";
 
 function run() {
-  execSync(
-    `node_modules/.bin/esbuild scripts/ssrEntry.jsx --bundle --platform=node --format=cjs --jsx=automatic --outfile=scripts/.ssr-bundle.cjs`,
-    { cwd: root, stdio: "inherit" }
-  );
+  esbuild.buildSync({
+    entryPoints: [path.join(__dirname, "ssrEntry.jsx")],
+    bundle: true,
+    platform: "node",
+    format: "cjs",
+    jsx: "automatic",
+    outfile: bundlePath,
+    loader: {
+      ".webp": "dataurl",
+      ".png": "dataurl",
+      ".jpg": "dataurl",
+      ".jpeg": "dataurl",
+      ".svg": "dataurl",
+    },
+  });
 
   const require = createRequire(import.meta.url);
   delete require.cache[require.resolve(bundlePath)];
