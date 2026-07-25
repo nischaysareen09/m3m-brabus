@@ -1,0 +1,5 @@
+node_modules
+dist
+scripts/.ssr-bundle.cjs
+.DS_Store
+*.local
